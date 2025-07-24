@@ -3,11 +3,11 @@ import requests
 from bs4 import BeautifulSoup
 import google.generativeai as genai
 from flask import Flask
+import json
 
 # ==============================================================================
 # CONFIGURAÇÃO CENTRAL DO ROBÔ
 # ==============================================================================
-# Todas as suas configurações agora vivem aqui, fáceis de achar e modificar.
 FONTES_BELEZA = [
     "https://www.gov.br/anvisa/pt-br/assuntos/noticias-anvisa"
 ]
@@ -61,11 +61,10 @@ def coletar_noticias(fontes, palavras_chave, numero_de_paginas=3):
 
 def analisar_conteudo(texto):
     """Envia o conteúdo para o Gemini e retorna a análise em texto puro."""
-    
     prompt_mestre_profissional = f"""
     **PERSONA:** Você é um consultor de estratégia e risco para o mercado da beleza no Brasil, preparando um briefing executivo para o dono de um salão. Seu tom é objetivo, direto e acionável.
 
-    **CONTEXTO:** Analise o compilado de notícias brutas abaixo, extraídas de fontes governamentais e do setor. Sua missão é filtrar o ruído e transformar estas informações em inteligência de negócios clara e valiosa. Se o texto de entrada for None ou vazio, informe que não há atualizações relevantes.
+    **CONTEXTO:** Analise o compilado de notícias brutas abaixo, extraídas de fontes governamentais e do setor. Sua missão é filtrar o ruído e transformar estas informações em inteligência de negócios clara e valiosa. Se o texto de entrada for None ou vazio, informe que não há atualizações relevantes em cada categoria.
 
     **NOTÍCIAS BRUTAS PARA ANÁLISE:**
     ---
@@ -92,7 +91,6 @@ def analisar_conteudo(texto):
     
     print("\n>>> Enviando texto para análise avançada do Gemini...")
     try:
-        # LINHA CORRIGIDA/ADICIONADA:
         modelo = genai.GenerativeModel('gemini-1.5-flash')
         response = modelo.generate_content(prompt_mestre_profissional)
         return response.text
@@ -105,21 +103,22 @@ def executar_robo():
     API_KEY = os.environ.get("GEMINI_API_KEY")
     if not API_KEY:
         msg_erro = "!!! ERRO CRÍTICO: Chave API não encontrada como variável de ambiente."
-        print(msg_erro)
+        print(json.dumps({"status": "ERRO", "mensagem": msg_erro}))
         return msg_erro, 500
     genai.configure(api_key=API_KEY)
 
     print("Iniciando a execução do robô...")
     texto_noticias = coletar_noticias(FONTES_BELEZA, KEYWORDS_BELEZA)
     
+    resultado_analise = analisar_conteudo(texto_noticias)
+    
     if texto_noticias:
-        resultado_analise = analisar_conteudo(texto_noticias)
-        print("Execução finalizada com sucesso. Relatório gerado.")
-        return f"Relatório gerado com sucesso:\n{resultado_analise}", 200
+        log_final = {"status": "SUCESSO_COM_NOTICIAS", "relatorio_texto": resultado_analise}
     else:
-        msg = analisar_conteudo(None) # Pede para a IA gerar a mensagem de "céu limpo"
-        print(msg)
-        return msg, 200
+        log_final = {"status": "SUCESSO_SEM_NOTICIAS", "relatorio_texto": resultado_analise}
+    
+    print(json.dumps(log_final, ensure_ascii=False, indent=2))
+    return "Execução finalizada. Verifique os logs para o resultado.", 200
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
