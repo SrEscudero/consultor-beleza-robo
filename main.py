@@ -62,11 +62,10 @@ def coletar_noticias(fontes, palavras_chave, numero_de_paginas=3):
 def analisar_conteudo(texto):
     """Envia o conteúdo para o Gemini e retorna a análise em texto puro."""
     
-    # O novo prompt, mais poderoso, está aqui.
     prompt_mestre_profissional = f"""
     **PERSONA:** Você é um consultor de estratégia e risco para o mercado da beleza no Brasil, preparando um briefing executivo para o dono de um salão. Seu tom é objetivo, direto e acionável.
 
-    **CONTEXTO:** Analise o compilado de notícias brutas abaixo, extraídas de fontes governamentais e do setor. Sua missão é filtrar o ruído e transformar estas informações em inteligência de negócios clara e valiosa. Se o texto de entrada estiver vazio, informe que não há atualizações.
+    **CONTEXTO:** Analise o compilado de notícias brutas abaixo, extraídas de fontes governamentais e do setor. Sua missão é filtrar o ruído e transformar estas informações em inteligência de negócios clara e valiosa. Se o texto de entrada for None ou vazio, informe que não há atualizações relevantes.
 
     **NOTÍCIAS BRUTAS PARA ANÁLISE:**
     ---
@@ -93,8 +92,9 @@ def analisar_conteudo(texto):
     
     print("\n>>> Enviando texto para análise avançada do Gemini...")
     try:
+        # LINHA CORRIGIDA/ADICIONADA:
         modelo = genai.GenerativeModel('gemini-1.5-flash')
-        response = model.generate_content(prompt_mestre_profissional)
+        response = modelo.generate_content(prompt_mestre_profissional)
         return response.text
     except Exception as e:
         return f"!!! Ocorreu um erro ao chamar a API do Gemini: {e}"
